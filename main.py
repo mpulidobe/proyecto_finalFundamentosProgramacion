@@ -2,7 +2,7 @@ import numpy as np
 import streamlit as st
 import primer3
 from electroforesis_gel import simular_electroforesis
-
+#holaaaaa
 IUPAC_MAP = {
     'A': {'A'}, 'C': {'C'}, 'G': {'G'}, 'T': {'T'}, 'U': {'T'},
     'R': {'A', 'G'}, 'Y': {'C', 'T'}, 'S': {'C', 'G'},
@@ -11,7 +11,6 @@ IUPAC_MAP = {
     'H': {'A', 'C', 'T'}, 'V': {'A', 'C', 'G'},
     'N': {'A', 'C', 'G', 'T'},
 }
-
 
 def compatibilidad(base1, base2):
     bases_set1 = IUPAC_MAP.get(base1, {base1})
