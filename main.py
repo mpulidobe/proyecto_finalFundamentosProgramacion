@@ -208,6 +208,8 @@ with tab1:
                 else:
                     st.success("Primeras encontrados. Aplicando filtros biológicos...")
 
+
+
                     dist_3_fwd = distancia_levenshtein(fwd_upper[-5:], subcadena_fwd[-5:])
                     dist_3_rev = distancia_levenshtein(rc_rev_upper[-5:], subcadena_rev[-5:])
 

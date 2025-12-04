@@ -279,8 +279,9 @@ def crear_mapa_genetico(longitud_total, lista_cds, lista_amplicones):
     figura, eje_plot = plt.subplots(1, 1, figsize=(15, 3))
     registro_grafico.plot(ax=eje_plot, figure_width=15)
     eje_plot.set_xlim(0, longitud_total)
-
-    return figura
+    output_file = f'./imagenes/mapa_genetico.jpg'
+    plt.savefig(output_file)
+    plt.close()
 
 def preparar_entradas(string_objetivo):
     string_limpio = string_objetivo.strip().upper()
