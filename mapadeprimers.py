@@ -22,121 +22,17 @@ seq_input = st.text_area("A continuación ingrese la secuencia",
 st.divider()
 
 # NAVEGACIÓN POR PESTAÑAS
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "🧬 Analizar Par de Primers (PCR)", # PESTAÑA 1
-    "🔬 Generar Primers Nuevos", # PESTAÑA 2
-    "📊 Analizar Múltiples Pares", # PESTAÑA 3
-    "🗺️ Visualizador Mapa Genético",  # PESTAÑA 4
-    "💻 Simular Electroforesis"  # PESTAÑA 5
+tab1, tab2, tab3, tab4 = st.tabs([
+    "🔬 Generar Primers Nuevos", # PESTAÑA 1
+    "📊 Analizar Múltiples Pares de Primers", # PESTAÑA 2
+    "🗺️ Visualizador Mapa Genético",  # PESTAÑA 3
+    "💻 Simular Electroforesis"  # PESTAÑA 4
 ])
 
 # =======================================================================
-# PESTAÑA 1: ANALIZAR PAR DE PRIMERS
+# --- PESTAÑA 1: GENERAR PRIMERS NUEVOS ---
 # =======================================================================
 with tab1:
-    st.header("Analizar un Par de Primers (Forward y Reverse)")
-    st.info(
-        "Esta pestaña aplica un filtro biológico: la distancia total debe ser <= 5 Y los últimos 5pb del extremo 3' deben tener una distancia == 0.")
-
-    default_rev = "GGGGCTTTGAGCTTCGAGAT"
-    default_fwd = "ACAACAGCGTTGAAACAGCC"
-
-    col1, col2 = st.columns(2)
-    with col1:
-        fwd_input = st.text_input("Primer Forward", value=default_fwd, key="fwd_input_tab1")
-    with col2:
-        rev_input = st.text_input("Primer Reverse", value=default_rev, key="rev_input_tab1")
-
-    if st.button("Analizar Par", use_container_width=True, type="primary", key="btn_analizar_par"):
-        st.header("Resultados del Análisis del Par")
-
-        if not seq_input or not fwd_input or not rev_input:
-            st.warning("Por favor, ingresa la secuencia objetivo y ambos primers")
-        else:
-            seq_upper = prmt.preparar_entradas(seq_input)
-            fwd_upper = prmt.preparar_entradas(fwd_input)
-            rev_upper = prmt.preparar_entradas(rev_input)
-
-            if len(seq_upper) < 70:
-                st.error(f"Error: El genoma de ({len(seq_upper)} pb) es más corto que el mínimo de 70 pb")
-            else:
-                st.subheader("Resultados de la Búsqueda")
-                with st.spinner("Buscando el mejor match para ambos primers..."):
-                    rc_rev_upper = prmt.reverso_complementario(rev_upper)
-                    posicion_fwd, dist_fwd, subcadena_fwd = prmt.buscar_mejor_match_levenshtein(fwd_upper, seq_upper)
-                    posicion_rev, dist_rev, subcadena_rev = prmt.buscar_mejor_match_levenshtein(rc_rev_upper, seq_upper)
-
-                if posicion_fwd == -1:
-                    st.error("Error: El primer Forward no se encontró en la secuencia")
-                elif posicion_rev == -1:
-                    st.error("Error: El Reverso Complementario del primer Reverse no se encontró en la secuencia")
-                elif posicion_fwd >= posicion_rev:
-                    st.error(
-                        f"Error: El primer Forward (posición {posicion_fwd}) se encontró DESPUÉS del primer Reverse (posición {posicion_rev}).")
-                else:
-                    st.success("Primers encontrados. Aplicando filtros biológicos...")
-
-                    dist_3_fwd = prmt.distancia_levenshtein(fwd_upper[-5:], subcadena_fwd[-5:])
-                    dist_3_rev = prmt.distancia_levenshtein(rc_rev_upper[-5:], subcadena_rev[-5:])
-
-                    pasa_dist_total_fwd = (dist_fwd <= 5)
-                    pasa_dist_total_rev = (dist_rev <= 5)
-                    pasa_anclaje_3_fwd = (dist_3_fwd == 0)
-                    pasa_anclaje_3_rev = (dist_3_rev == 0)
-
-                    veredicto_final = (pasa_dist_total_fwd and pasa_dist_total_rev and
-                                       pasa_anclaje_3_fwd and pasa_anclaje_3_rev)
-
-                    if veredicto_final:
-                        st.success(
-                            "VEREDICTO: ¡ÉXITO! El par de primers CUMPLE con todas las reglas de anclaje y distancia.")
-                    else:
-                        st.error(
-                            "VEREDICTO: FALLO. El par de primers NO cumple con los criterios de anclaje y/o distancia total. Revisa los detalles abajo.")
-
-                    inicio_fwd = posicion_fwd
-                    fin_rev = posicion_rev + len(rc_rev_upper)
-                    tamano_amplicon = fin_rev - inicio_fwd
-                    st.metric("Tamaño Estimado del Amplicón", f"{tamano_amplicon} pb")
-
-                    st.divider()
-                    col1_res, col2_res = st.columns(2)
-                    with col1_res:
-                        st.subheader("Resultados Primer Forward")
-                        st.metric("Posición (índice)", f"{posicion_fwd}")
-                        st.metric("Distancia Total (Límite <= 5)", f"{dist_fwd}",
-                                  delta=f"Pasa: {pasa_dist_total_fwd}", delta_color="off")
-                        st.metric("Distancia Anclaje 3' (Límite 0)", f"{dist_3_fwd}",
-                                  delta=f"Pasa: {pasa_anclaje_3_fwd}", delta_color="off")
-
-                        st.markdown("**Alineamiento Forward:**")
-                        label_primer = "Primer: "
-                        label_target = "Target: "
-                        padding = " " * len(label_primer)
-                        alignment_str_fwd = prmt.generar_string_alineamiento(fwd_upper, subcadena_fwd)
-                        display_string_fwd = f"{label_primer}{fwd_upper}\n{padding}{alignment_str_fwd}\n{label_target}{subcadena_fwd}"
-                        st.code(display_string_fwd, language="text")
-
-                    with col2_res:
-                        st.subheader("Resultados Primer Reverse")
-                        st.metric("Posición (índice)", f"{posicion_rev}")
-                        st.metric("Distancia Total (Límite <= 5)", f"{dist_rev}",
-                                  delta=f"Pasa: {pasa_dist_total_rev}", delta_color="off")
-                        st.metric("Distancia Anclaje 3' (Límite 0)", f"{dist_3_rev}",
-                                  delta=f"Pasa: {pasa_anclaje_3_rev}", delta_color="off")
-
-                        st.markdown("**Alineamiento Reverse:**")
-                        label_rc = "RC:     "
-                        label_target = "Target: "
-                        padding = " " * len(label_rc)
-                        alignment_str_rev = prmt.generar_string_alineamiento(rc_rev_upper, subcadena_rev)
-                        display_string_rev = f"{label_rc}{rc_rev_upper}\n{padding}{alignment_str_rev}\n{label_target}{subcadena_rev}"
-                        st.code(display_string_rev, language="text")
-
-# =======================================================================
-# --- PESTAÑA 2: GENERAR PRIMERS NUEVOS ---
-# =======================================================================
-with tab2:
     st.header("Generar Primers Nuevos (con Primer3)")
 
     st.subheader("Parámetros de Diseño del Producto")
@@ -239,9 +135,9 @@ with tab2:
             st.error(f"Ocurrió un error inesperado al ejecutar primer3: {e}")
 
 # =======================================================================
-# --- PESTAÑA 3: BÚSQUEDA DE MÚLTIPLES PARES DE PRIMERS ---
+# --- PESTAÑA 2: BÚSQUEDA DE MÚLTIPLES PARES DE PRIMERS ---
 # =======================================================================
-with tab3:
+with tab2:
     st.header("Analizar Múltiples Pares de Primers")
     st.info("Esta pestaña aplica el mismo filtro biológico: Distancia Total <= 5 Y Distancia Anclaje 3' == 0.")
 
@@ -261,7 +157,7 @@ with tab3:
             key="rev_list_input"
         )
 
-    if st.button("Analizar Múltiples Pares", use_container_width=True, type="primary", key="btn_analizar_multi"):
+    if st.button("Analizar", use_container_width=True, type="primary", key="btn_analizar_multi"):
 
         target_sequence_upper = seq_input.strip().upper()
         fwd_list_raw = fwd_list_input.strip().upper()
@@ -362,9 +258,9 @@ with tab3:
                         st.divider()
 
 # =======================================================================
-# --- PESTAÑA 4: VISUALIZADOR MAPA GENÉTICO  ---
+# --- PESTAÑA 3: VISUALIZADOR MAPA GENÉTICO  ---
 # =======================================================================
-with tab4:
+with tab3:
     st.header("🗺️ Visualizador Interactivo de Mapa Genético")
     st.markdown("Define los genes (CDS) y los segmentos amplificados (Amplicones/Primers) para visualizar el mapa.")
 
@@ -408,8 +304,8 @@ with tab4:
     st.markdown("Define el **Nombre** del amplicon y sus coordenadas de **Inicio** y **Fin**.")
 
     amplicon_default_data = [
-        {"name": "Par 1 (76pb)", "start": 928, "end": 1003},
-        {"name": "Par 2 (Test)", "start": 2300, "end": 2450}
+        {"name": "Par número 1", "start": 928, "end": 1003},
+        {"name": "Par número 2", "start": 2300, "end": 2450}
     ]
 
     amplicon_column_config = {
@@ -460,9 +356,9 @@ with tab4:
         st.info("Por favor, corrige los errores en los datos para visualizar el mapa.")
 
 # =======================================================================
-# --- PESTAÑA 5: SIMULAR ELECTROFORESIS  ---
+# --- PESTAÑA 4: SIMULAR ELECTROFORESIS  ---
 # =======================================================================
-with tab5:
+with tab4:
     st.subheader("Electroforesis generada")
 
     # Construir la ruta de la imagen
