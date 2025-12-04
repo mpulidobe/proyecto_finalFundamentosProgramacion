@@ -2,286 +2,37 @@ import numpy as np
 import streamlit as st
 import primer3
 from electroforesis_gel import simular_electroforesis
-#holaaaaa
-#hola
-IUPAC_MAP = {
-    'A': {'A'}, 'C': {'C'}, 'G': {'G'}, 'T': {'T'}, 'U': {'T'},
-    'R': {'A', 'G'}, 'Y': {'C', 'T'}, 'S': {'C', 'G'},
-    'W': {'A', 'T'}, 'K': {'G', 'T'}, 'M': {'A', 'C'},
-    'B': {'C', 'G', 'T'}, 'D': {'A', 'G', 'T'},
-    'H': {'A', 'C', 'T'}, 'V': {'A', 'C', 'G'},
-    'N': {'A', 'C', 'G', 'T'},
-}
+import matplotlib.pyplot as plt
+import io
+import primer_tools as prmt
 
-def compatibilidad(base1, base2):
-    bases_set1 = IUPAC_MAP.get(base1, {base1})
-    bases_set2 = IUPAC_MAP.get(base2, {base2})
-    return bool(bases_set1.intersection(bases_set2))
+# STREAMLIT
 
+st.set_page_config(page_title="GenVis", layout="wide")
+st.title("GenVis - Herramienta Bioinformática para el Análisis y Visualización de Secuencias")
 
-def traduccion_ntdegenerados(sequence):
-    validos = set('ACGTN')
-    seq_limpia = []
-    for base in sequence.upper():
-        if base in validos:
-            seq_limpia.append(base)
-        else:
-            seq_limpia.append('N')
-    seq_para_diseno = "".join(seq_limpia)
-    return seq_para_diseno
+# ENTRADA DE SECUENCIA PRINCIPAL (Siempre visible)
+st.header("Entrada de la Secuencia Objetivo")
+default_sequence = """GTCATCTTTTATTCTTAATCAAACCTCACTCAGAAAAATCCAGAACTGTNNNAATAAGAACCAAAGCCACAVSRATGTCTACAAGTGTTTATGAATCGATCATTCAGACGAAAGCTTCGGTCTGGGGATCTACTGCATCTGGCAAATCTATTGTGGACTCTTACTGGATCCACGAGTTTTTAACTGGTTCTCCATTGATTCAAACTCAGTTGTATTCTGATTCAAGAAGCAAAAGCAGCTTTGGCTACACCACACGAGTTGGTGATCTTCVDSBCTTCAGAAGAGAAAGAGATTCTTTCTCAACACTTGTACATCCCTATTTTTGATGACATTGATTTCAACATCAATATCAATGATTCAGTCATGACAGTATCCGTTTGCTCCAACACGGTCAATGCTAATGGAGTGAAACATCAGGGTCATCTGAAGGTGCTTTCTCTTGCTCAACTGCACTCTATAGAGCCTACAATGAGCCGATCTGACATTGCTGACAGATTCCGTCTTCAAGAAAAAGACGTGATTCCCAATGACAGATACATTGATGCTGCTAACAAAGGCTCTCTTTCATGTGTTAAAGAGCATTCCTATAAAGTCGAAATGTGCCACAACCAAGCATTAGGTAAAGTTAATGTTCTATCCCCTAACAGAAATGTTCATGAATGGCTGTACAGCTTCAAGCCAGCTTTCAACCAGATTGAAAGCAACAACAGAACTGTAAATTCTCTTGCAGTGAAATCTCTGCTCATGTCTGCAGAAAACAACATAATGCCTAACTCTCAGGCCTTTGTCAAAGCTTCTACAGGCTCCCAGTTCAAGCTAAACCTCTGGCTGAGGATTCCTAAAGTTCTGAAACAGGTTTCTATTCAGAAACTATTTAAAGTTGCAGAAGATGAAACAGACAAAAGCTTTTATTTGTCTATTGCTTGCATCCCTAACCACAACAGCGTTGAAACAGCVSTMCTTGAATGTGACCATCATCTGCAAGCATCAGCTCCCAATCTCGAAGCTCAAAGCCCCTTTWKDTGAATTGACAATGATGTTTTCTGATCTGAGAGAACCTTACAACGTTGTGCATGATCCTTCTTACCCTCAAAGAATTGTTCATGCTCTGCTTGAGACACACACATCTTTTGCCCAAACTCTTTGCAATAACTTGCAAGAAGATGTGGTCATCTACACTTTGAACAACCCTGAGCTGACTTCTTTAAAGTTAGATTTAGGTAAGAAAACCCTAAATTACAGTGAAGATGCTTATAATAAGAAATATTTTCTTTCAAAAACTCTTGAATGCCTCCCAGTAAACACACAGACTATGTCTTATTTAGACAGCATTCAAATTCCCTCATGGAAGATTGACTTTGCCAGAGGAGAAATCAAAATTTCCCCTCAATCAATCTCTGTTGCAAAATCTTTgttgaagctagatcttgatgtgatcagaggaaagaaatctctgcctcagggagcttctgaatcagagtcaaagcaatttgtgtctatttgtctgctcctttaactattcctttcctctttaaatcttctttcagcttctttccaactfctttcaatctcttttcargtttctctcatttcctttaaatttcctaattttctttacttcctttct"""
 
-
-def reverso_complementario(sequence):
-    """
-    Calcula el reverso complementario de una secuencia de ADN,
-    manejando correctamente los códigos degenerados IUPAC.
-    """
-    dicc_complementos = {
-        'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C',
-        'R': 'Y', 'Y': 'R', 'S': 'S', 'W': 'W',
-        'K': 'M', 'M': 'K', 'B': 'V', 'V': 'B',
-        'D': 'H', 'H': 'D', 'N': 'N',
-        'a': 't', 't': 'a', 'c': 'g', 'g': 'c',
-        'r': 'y', 'y': 'r', 's': 's', 'w': 'w',
-        'k': 'm', 'm': 'k', 'b': 'v', 'v': 'b',
-        'd': 'h', 'h': 'd', 'n': 'n'
-    }
-    sequence_invertida = sequence[::-1]
-    list_complementos = [dicc_complementos.get(base, base) for base in sequence_invertida]
-    return "".join(list_complementos)
-
-
-def distancia_levenshtein(s1, s2):
-    filas = len(s1) + 1
-    columnas = len(s2) + 1
-    matriz = [[0 for _ in range(columnas)] for _ in range(filas)]
-    for i in range(filas):
-        matriz[i][0] = i
-    for j in range(columnas):
-        matriz[0][j] = j
-    for i in range(1, filas):
-        for j in range(1, columnas):
-            if compatibilidad(s1[i - 1], s2[j - 1]):
-                costo_sustitucion = 0
-            else:
-                costo_sustitucion = 1
-            eliminacion = matriz[i - 1][j] + 1
-            insercion = matriz[i][j - 1] + 1
-            sustitucion = matriz[i - 1][j - 1] + costo_sustitucion
-            matriz[i][j] = min(eliminacion, insercion, sustitucion)
-    return matriz[filas - 1][columnas - 1]
-
-
-def smith_waterman_score(s1, s2, match=1, mismatch=-1, gap=-2):
-    filas = len(s1) + 1
-    cols = len(s2) + 1
-    matrix = [[0 for _ in range(cols)] for _ in range(filas)]
-    max_score = 0
-    for i in range(1, filas):
-        for j in range(1, cols):
-            diagonal = matrix[i - 1][j - 1] + (match if s1[i - 1] == s2[j - 1] else mismatch)
-            arriba = matrix[i - 1][j] + gap
-            izquierda = matrix[i][j - 1] + gap
-            current_score = max(0, diagonal, arriba, izquierda)
-            matrix[i][j] = current_score
-            if current_score > max_score:
-                max_score = current_score
-    return max_score
-
-
-def match_levenshtein(primer, target_sequence):
-    len_primer = len(primer)
-    mejor_distancia = float('inf')
-    mejor_match_subcadena = ""
-    mejor_posicion = -1
-    if len_primer > len(target_sequence):
-        return -1, float('inf'), ""
-    ancho_ventana = len_primer
-    for i in range(len(target_sequence) - len_primer + 1):
-        subcadena = target_sequence[i: i + ancho_ventana]
-        distancia = distancia_levenshtein(primer, subcadena)
-        if distancia < mejor_distancia:
-            mejor_distancia = distancia
-            mejor_match_subcadena = subcadena
-            mejor_posicion = i
-            if distancia == 0:
-                break
-    return mejor_posicion, mejor_distancia, mejor_match_subcadena
-
-
-def generar_string_alineamiento(s1, s2):
-    alineamiento = []
-    for i in range(len(s1)):
-        # Usamos la misma lógica "inteligente" de compatibilidad
-        if compatibilidad(s1[i], s2[i]):
-            alineamiento.append('|')
-        else:
-            alineamiento.append(' ')
-    return "".join(alineamiento)
-
-
-def GC_Tm_autocomplemetary(primer_fwd, primer_rev):
-    G_fwd_count = primer_fwd.count('G')
-    C_fwd_count = primer_fwd.count('C')
-    GC_fwd = G_fwd_count + C_fwd_count
-    GC_fwd_porc = (GC_fwd / len(primer_fwd)) * 100
-    G_rev_count = primer_rev.count('G')
-    C_rev_count = primer_rev.count('C')
-    GC_rev = G_rev_count + C_rev_count
-    GC_rev_porc = (GC_rev / len(primer_rev)) * 100
-    Tm_fwd = 64.9 + (41 * (GC_fwd - 16.4)) / len(primer_fwd)
-    Tm_rev = 64.9 + (41 * (GC_rev - 16.4)) / len(primer_rev)
-    rc_fwd = reverso_complementario(primer_fwd)
-    autocomplemetary_fwd = distancia_levenshtein(primer_fwd, rc_fwd)
-    rc_rev = reverso_complementario(primer_rev)
-    autocomplemetary_rev = distancia_levenshtein(primer_rev, rc_rev)
-    return round(GC_fwd_porc, 2), round(GC_rev_porc, 2), round(Tm_fwd, 2), round(Tm_rev,
-                                                                                 2), autocomplemetary_fwd, autocomplemetary_rev
-
-
-# --- INTERFAZ DE STREAMLIT ---
-
-st.set_page_config(page_title="Analizador de Primers", layout="wide")
-st.title("Primer4")
-
-# --- ENTRADA DE SECUENCIA PRINCIPAL ---
-st.header("Entrada de Secuencia Target")
-default_sequence = """GTCATCTTTTATTCTTAATCAAACCTCACTCAGAAAAATCCAGAACTGTNNNAATAAGAACCAAAGCCACAVSRATGTCTACAAGTGTTTATGAATCGATCATTCAGACGAAAGCTTCGGTCTGGGGATCTACTGCATCTGGCAAATCTATTGTGGACTCTTACTGGATCCACGAGTTTTTAACTGGTTCTCCATTGATTCAAACTCAGTTGTATTCTGATTCAAGAAGCAAAAGCAGCTTTGGCTACACCACACGAGTTGGTGATCTTCVDSBCTTCAGAAGAGAAAGAGATTCTTTCTCAACACTTGTACATCCCTATTTTTGATGACATTGATTTCAACATCAATATCAATGATTCAGTCATGACAGTATCCGTTTGCTCCAACACGGTCAATGCTAATGGAGTGAAACATCAGGGTCATCTGAAGGTGCTTTCTCTTGCTCAACTGCACTCTATAGAGCCTACAATGAGCCGATCTGACATTGCTGACAGATTCCGTCTTCAAGAAAAAGACGTGATTCCCAATGACAGATACATTGATGCTGCTAACAAAGGCTCTCTTTCATGTGTTAAAGAGCATTCCTATAAAGTCGAAATGTGCCACAACCAAGCATTAGGTAAAGTTAATGTTCTATCCCCTAACAGAAATGTTCATGAATGGCTGTACAGCTTCAAGCCAGCTTTCAACCAGATTGAAAGCAACAACAGAACTGTAAATTCTCTTGCAGTGAAATCTCTGCTCATGTCTGCAGAAAACAACATAATGCCTAACTCTCAGGCCTTTGTCAAAGCTTCTACAGGCTCCCAGTTCAAGCTAAACCTCTGGCTGAGGATTCCTAAAGTTCTGAAACAGGTTTCTATTCAGAAACTATTTAAAGTTGCAGAAGATGAAACAGACAAAAGCTTTTATTTGTCTATTGCTTGCATCCCTAACCACAACAGCGTTGAAACAGCVSTMCTTGAATGTGACCATCATCTGCAAGCATCAGCTCCCAATCTCGAAGCTCAAAGCCCCTTTWKDTGAATTGACAATGATGTTTTCTGATCTGAGAGAACCTTACAACGTTGTGCATGATCCTTCTTACCCTCAAAGAATTGTTCATGCTCTGCTTGAGACACACACATCTTTTGCCCAAACTCTTTGCAATAACTTGCAAGAAGATGTGGTCATCTACACTTTGAACAACCCTGAGCTGACTTCTTTAAAGTTAGATTTAGGTAAGAAAACCCTAAATTACAGTGAAGATGCTTATAATAAGAAATATTTTCTTTCAAAAACTCTTGAATGCCTCCCAGTAAACACACAGACTATGTCTTATTTAGACAGCATTCAAATTCCCTCATGGAAGATTGACTTTGCCAGAGGAGAAATCAAAATTTCCCCTCAATCAATCTCTGTTGCAAAATCTTTgttgaagctagatcttgatgtgatcagaggaaagaaatctctgcctcagggagcttctgaatcagagtcaaagcaatttgtgtctatttgtctgctcctttaactattcctttcctctttaaatcttctttcagcttctttccaacttctttcaatctcttttcargtttctctcatttcctttaaatttcctaattttctttacttcctttct"""
-
-seq_input = st.text_area("Secuencia de Referencia (Target)",
+seq_input = st.text_area("A continuación ingrese la secuencia",
                          value=default_sequence,
                          height=250, key="seq_input_main")
 
 st.divider()
 
-# --- NAVEGACIÓN POR PESTAÑAS ---
+# NAVEGACIÓN POR PESTAÑAS
 tab1, tab2, tab3, tab4 = st.tabs([
-    "🧬 Analizar Par de Primers (PCR)",
-    "🔬 Generar Primers Nuevos",
-    "📊 Analizar Múltiples Pares (Batch)",
-    "💻 Simular Electroforesis"
+    "🔬 Generar Primers Nuevos", # PESTAÑA 1
+    "📊 Analizar Múltiples Pares de Primers", # PESTAÑA 2
+    "🗺️ Visualizador Mapa Genético",  # PESTAÑA 3
+    "💻 Simular Electroforesis"  # PESTAÑA 4
 ])
 
 # =======================================================================
-# --- PESTAÑA 1: ANALIZAR PAR ---
+# --- PESTAÑA 1: GENERAR PRIMERS NUEVOS ---
 # =======================================================================
 with tab1:
-    st.header("Analizar un Par de Primers (Forward y Reverse)")
-    st.info(
-        "Esta pestaña aplica un filtro biológico: la distancia total debe ser <= 5 Y los últimos 5pb del extremo 3' deben tener una distancia == 0.")
-
-    default_rev = "GGGGCTTTGAGCTTCGAGAT"
-    default_fwd = "ACAACAGCGTTGAAACAGCC"
-
-    col1, col2 = st.columns(2)
-    with col1:
-        fwd_input = st.text_input("Primer Forward", value=default_fwd, key="fwd_input_tab1")
-    with col2:
-        rev_input = st.text_input("Primer Reverse", value=default_rev, key="rev_input_tab1")
-
-    if st.button("Analizar Par", use_container_width=True, type="primary", key="btn_analizar_par"):
-        st.header("Resultados del Análisis del Par")
-
-        if not seq_input or not fwd_input or not rev_input:
-            st.warning("Por favor, ingresa la secuencia target y ambos primers")
-        else:
-            seq_upper = seq_input.strip().upper()
-            fwd_upper = fwd_input.strip().upper()
-            rev_upper = rev_input.strip().upper()
-
-            if len(seq_upper) < 70:
-                st.error(f"Error: El genoma de ({len(seq_upper)} pb) es más corto que el mínimo de 70 pb")
-            else:
-                st.subheader("Resultados de la Búsqueda")
-                with st.spinner("Buscando el mejor match para ambos primers..."):
-                    rc_rev_upper = reverso_complementario(rev_upper)
-                    posicion_fwd, dist_fwd, subcadena_fwd = match_levenshtein(fwd_upper, seq_upper)
-                    posicion_rev, dist_rev, subcadena_rev = match_levenshtein(rc_rev_upper, seq_upper)
-
-                if posicion_fwd == -1:
-                    st.error("Error: El primer Forward no se encontró en la secuencia")
-                elif posicion_rev == -1:
-                    st.error("Error: El Reverso Complementario del primer Reverse no se encontró en la secuencia")
-                elif posicion_fwd >= posicion_rev:
-                    st.error(
-                        f"Error: El primer Forward (posición {posicion_fwd}) se encontró DESPUÉS del primer Reverse (posición {posicion_rev}).")
-                else:
-                    st.success("Primeras encontrados. Aplicando filtros biológicos...")
-
-
-
-                    dist_3_fwd = distancia_levenshtein(fwd_upper[-5:], subcadena_fwd[-5:])
-                    dist_3_rev = distancia_levenshtein(rc_rev_upper[-5:], subcadena_rev[-5:])
-
-                    pasa_dist_total_fwd = (dist_fwd <= 5)
-                    pasa_dist_total_rev = (dist_rev <= 5)
-                    pasa_anclaje_3_fwd = (dist_3_fwd == 0)
-                    pasa_anclaje_3_rev = (dist_3_rev == 0)
-
-                    veredicto_final = (pasa_dist_total_fwd and pasa_dist_total_rev and
-                                       pasa_anclaje_3_fwd and pasa_anclaje_3_rev)
-
-                    if veredicto_final:
-                        st.success(
-                            "VEREDICTO: ¡ÉXITO! El par de primers CUMPLE con todas las reglas de anclaje y distancia.")
-                    else:
-                        st.error(
-                            "VEREDICTO: FALLO. El par de primers NO cumple con los criterios de anclaje y/o distancia total. Revisa los detalles abajo.")
-
-                    inicio_fwd = posicion_fwd
-                    fin_rev = posicion_rev + len(rc_rev_upper)
-                    tamano_amplicon = fin_rev - inicio_fwd
-                    st.metric("Tamaño Estimado del Amplicón", f"{tamano_amplicon} pb")
-
-                    st.divider()
-                    col1_res, col2_res = st.columns(2)
-                    with col1_res:
-                        st.subheader("Resultados Primer Forward")
-                        st.metric("Posición (índice)", f"{posicion_fwd}")
-                        st.metric("Distancia Total (Límite <= 5)", f"{dist_fwd}",
-                                  delta=f"Pasa: {pasa_dist_total_fwd}", delta_color="off")
-                        st.metric("Distancia Anclaje 3' (Límite 0)", f"{dist_3_fwd}",
-                                  delta=f"Pasa: {pasa_anclaje_3_fwd}", delta_color="off")
-
-                        ### ¡VISUALIZACIÓN CORREGIDA! ###
-                        st.markdown("**Alineamiento Forward:**")
-                        # Definimos etiquetas con padding
-                        label_primer = "Primer: "  # 8 chars
-                        label_target = "Target: "  # 8 chars
-                        padding = " " * len(label_primer)  # 8 espacios
-                        # Generamos el string de |
-                        alignment_str_fwd = generar_string_alineamiento(fwd_upper, subcadena_fwd)
-                        # Creamos el string final limpio
-                        display_string_fwd = f"{label_primer}{fwd_upper}\n{padding}{alignment_str_fwd}\n{label_target}{subcadena_fwd}"
-                        st.code(display_string_fwd, language="text")
-
-                    with col2_res:
-                        st.subheader("Resultados Primer Reverse")
-                        st.metric("Posición (índice)", f"{posicion_rev}")
-                        st.metric("Distancia Total (Límite <= 5)", f"{dist_rev}",
-                                  delta=f"Pasa: {pasa_dist_total_rev}", delta_color="off")
-                        st.metric("Distancia Anclaje 3' (Límite 0)", f"{dist_3_rev}",
-                                  delta=f"Pasa: {pasa_anclaje_3_rev}", delta_color="off")
-
-                        st.markdown("**Primer (Input):**")
-                        st.code(rev_upper, language="text")
-
-                        ### ¡VISUALIZACIÓN CORREGIDA! ###
-                        st.markdown("**Alineamiento Reverse (RC vs Target):**")
-                        # Definimos etiquetas con padding
-                        label_rc = "RC:     "  # 8 chars
-                        label_target = "Target: "  # 8 chars
-                        padding = " " * len(label_rc)  # 8 espacios
-                        # Generamos el string de |
-                        alignment_str_rev = generar_string_alineamiento(rc_rev_upper, subcadena_rev)
-                        # Creamos el string final limpio
-                        display_string_rev = f"{label_rc}{rc_rev_upper}\n{padding}{alignment_str_rev}\n{label_target}{subcadena_rev}"
-                        st.code(display_string_rev, language="text")
-
-# =======================================================================
-# --- PESTAÑA 2: GENERAR PRIMERS ---
-# =======================================================================
-with tab2:
     st.header("Generar Primers Nuevos (con Primer3)")
 
     st.subheader("Parámetros de Diseño del Producto")
@@ -304,7 +55,7 @@ with tab2:
 
         try:
             seq_original = seq_input.strip().upper()
-            seq_para_diseno = traduccion_ntdegenerados(seq_original)
+            seq_para_diseno = prmt.limpiar_degenerados(seq_original)
 
             if 'N' in seq_para_diseno and not 'N' in seq_original:
                 st.warning(
@@ -344,7 +95,7 @@ with tab2:
 
                         try:
                             (GC_fwd_porc, GC_rev_porc, Tm_fwd, Tm_rev,
-                             autocomp_fwd, autocomp_rev) = GC_Tm_autocomplemetary(fwd_seq, rev_seq)
+                             autocomp_fwd, autocomp_rev) = prmt.parametros_primer(fwd_seq, rev_seq)
                             col_fwd, col_rev = st.columns(2)
                             with col_fwd:
                                 st.markdown("**Primer Forward**")
@@ -366,7 +117,11 @@ with tab2:
                             st.error(f"Error al calcular métricas personalizadas para el Par #{i + 1}: {e}")
                             st.divider()
                             continue
+
                     simular_electroforesis(amplicones_simulacion)
+
+                    st.session_state["amplicones_simulacion_tab2"] = amplicones_simulacion.tolist()
+
                 else:
                     st.error("FALLO EL DISEÑO")
                     st.text("Explicaciones de Primer3:")
@@ -380,29 +135,29 @@ with tab2:
             st.error(f"Ocurrió un error inesperado al ejecutar primer3: {e}")
 
 # =======================================================================
-# --- PESTAÑA 3: BÚSQUEDA DE MÚLTIPLES PARES ---
+# --- PESTAÑA 2: BÚSQUEDA DE MÚLTIPLES PARES DE PRIMERS ---
 # =======================================================================
-with tab3:
-    st.header("Analizar Múltiples Pares de Primers (Batch)")
+with tab2:
+    st.header("Analizar Múltiples Pares de Primers")
     st.info("Esta pestaña aplica el mismo filtro biológico: Distancia Total <= 5 Y Distancia Anclaje 3' == 0.")
 
     col1, col2 = st.columns(2)
     with col1:
         fwd_list_input = st.text_area(
             "Lista de Primers FORWARD (uno por línea)",
-            value="ACAACAGCGTTGAAACAGCC\nAGCTTCTACAGGCTCCCAGT\nPRIMER_FWD_3",
+            value="ACAACAGCGTTGAAACAGCC\nAGCTTCTACAGGCTCCCAGT\n",
             height=250,
             key="fwd_list_input"
         )
     with col2:
         rev_list_input = st.text_area(
             "Lista de Primers REVERSE (uno por línea)",
-            value="GGGGCTTTGAGCTTCGAGAT\nGGCTGTTTCAACGCTGTTGT\nPRIMER_REV_3",
+            value="GGGGCTTTGAGCTTCGAGAT\nGGCTGTTTCAACGCTGTTGT\n",
             height=250,
             key="rev_list_input"
         )
 
-    if st.button("Analizar Múltiples Pares", use_container_width=True, type="primary", key="btn_analizar_multi"):
+    if st.button("Analizar", use_container_width=True, type="primary", key="btn_analizar_multi"):
 
         target_sequence_upper = seq_input.strip().upper()
         fwd_list_raw = fwd_list_input.strip().upper()
@@ -411,18 +166,19 @@ with tab3:
         if not target_sequence_upper or not fwd_list_raw or not rev_list_raw:
             st.warning("Por favor, ingresa la secuencia target y ambas listas de primers.")
         elif len(target_sequence_upper) < 70:
-            st.error(f"Error: El genoma de ({len(target_sequence_upper)} pb) es más corto que el mínimo de 70 pb")
+            st.error(f"Error: El genoma de ({len(prmt.target_secuencia_upper)} pb) es más corto que el mínimo de 70 pb")
         else:
             fwd_list = [p.strip() for p in fwd_list_raw.split('\n') if p.strip()]
             rev_list = [p.strip() for p in rev_list_raw.split('\n') if p.strip()]
 
             if not fwd_list or not rev_list:
-                st.error("Una de las listas de primers está vacía.")
+                st.error("Una de las listas de primers está vacía")
             elif len(fwd_list) != len(rev_list):
                 st.error(
                     f"Error: El número de primers Forward ({len(fwd_list)}) no coincide con el número de primers Reverse ({len(rev_list)}).")
             else:
                 st.header(f"Resultados del Análisis de {len(fwd_list)} Pares")
+                amplicones_simulacion_batch = []
                 with st.spinner("Analizando todos los pares..."):
 
                     num_exitos = 0
@@ -434,9 +190,9 @@ with tab3:
 
                         st.subheader(f"Par #{i + 1}: {fwd_upper[:10]}... / {rev_upper[:10]}...")
 
-                        rc_rev_upper = reverso_complementario(rev_upper)
-                        posicion_fwd, dist_fwd, subcadena_fwd = match_levenshtein(fwd_upper, target_sequence_upper)
-                        posicion_rev, dist_rev, subcadena_rev = match_levenshtein(rc_rev_upper, target_sequence_upper)
+                        rc_rev_upper = prmt.reverso_complementario(rev_upper)
+                        posicion_fwd, dist_fwd, subcadena_fwd = prmt.buscar_mejor_match_levenshtein(fwd_upper, target_sequence_upper)
+                        posicion_rev, dist_rev, subcadena_rev = prmt.buscar_mejor_match_levenshtein(rc_rev_upper, target_sequence_upper)
 
                         if posicion_fwd == -1:
                             st.error("Error: El primer Forward no se encontró.")
@@ -449,8 +205,8 @@ with tab3:
                                 f"Error: Fwd (pos {posicion_fwd}) se encontró DESPUÉS del Rev (pos {posicion_rev}).")
                             num_fallos += 1
                         else:
-                            dist_3_fwd = distancia_levenshtein(fwd_upper[-5:], subcadena_fwd[-5:])
-                            dist_3_rev = distancia_levenshtein(rc_rev_upper[-5:], subcadena_rev[-5:])
+                            dist_3_fwd = prmt.distancia_levenshtein(fwd_upper[-5:], subcadena_fwd[-5:])
+                            dist_3_rev = prmt.distancia_levenshtein(rc_rev_upper[-5:], subcadena_rev[-5:])
 
                             pasa_dist_total_fwd = (dist_fwd <= 5)
                             pasa_dist_total_rev = (dist_rev <= 5)
@@ -463,13 +219,15 @@ with tab3:
                             if veredicto_final:
                                 st.success("VEREDICTO: ¡ÉXITO! El par CUMPLE las reglas.")
                                 num_exitos += 1
+                                inicio_fwd = posicion_fwd
+                                fin_rev = posicion_rev + len(rc_rev_upper)
+                                tamano_amplicon = fin_rev - inicio_fwd
+                                amplicones_simulacion_batch.append(tamano_amplicon)
                             else:
                                 st.error("VEREDICTO: FALLO. El par NO cumple las reglas.")
                                 num_fallos += 1
+                                tamano_amplicon = "N/A (Fallo en Anclaje)"
 
-                            inicio_fwd = posicion_fwd
-                            fin_rev = posicion_rev + len(rc_rev_upper)
-                            tamano_amplicon = fin_rev - inicio_fwd
                             st.metric("Tamaño Estimado del Amplicón", f"{tamano_amplicon} pb")
 
                             col1_res, col2_res = st.columns(2)
@@ -478,11 +236,10 @@ with tab3:
                                 st.metric("Distancia Total Fwd (<= 5)", f"{dist_fwd}")
                                 st.metric("Distancia Anclaje 3' Fwd (== 0)", f"{dist_3_fwd}")
 
-                                ### ¡VISUALIZACIÓN CORREGIDA! ###
                                 label_primer = "Primer: "
                                 label_target = "Target: "
                                 padding = " " * len(label_primer)
-                                alignment_str_fwd = generar_string_alineamiento(fwd_upper, subcadena_fwd)
+                                alignment_str_fwd = prmt.generar_string_alineamiento(fwd_upper, subcadena_fwd)
                                 display_string_fwd = f"{label_primer}{fwd_upper}\n{padding}{alignment_str_fwd}\n{label_target}{subcadena_fwd}"
                                 st.code(display_string_fwd, language="text")
 
@@ -491,18 +248,115 @@ with tab3:
                                 st.metric("Distancia Total Rev (<= 5)", f"{dist_rev}")
                                 st.metric("Distancia Anclaje 3' Rev (== 0)", f"{dist_3_rev}")
 
-                                ### ¡VISUALIZACIÓN CORREGIDA! ###
                                 label_rc = "RC:     "
                                 label_target = "Target: "
                                 padding = " " * len(label_rc)
-                                alignment_str_rev = generar_string_alineamiento(rc_rev_upper, subcadena_rev)
+                                alignment_str_rev = prmt.generar_string_alineamiento(rc_rev_upper, subcadena_rev)
                                 display_string_rev = f"{label_rc}{rc_rev_upper}\n{padding}{alignment_str_rev}\n{label_target}{subcadena_rev}"
                                 st.code(display_string_rev, language="text")
 
                         st.divider()
 
 # =======================================================================
-# --- PESTAÑA 4: VISUALIZACIÓN DE ELECTROFORESIS ---
+# --- PESTAÑA 3: VISUALIZADOR MAPA GENÉTICO  ---
+# =======================================================================
+with tab3:
+    st.header("🗺️ Visualizador Interactivo de Mapa Genético")
+    st.markdown("Define los genes (CDS) y los segmentos amplificados (Amplicones/Primers) para visualizar el mapa.")
+
+    # Longitud Total del Genoma
+    longitud_total_mapa = st.number_input(
+        "**Longitud Total del Genoma (bp):**",
+        min_value=1,
+        # Asegúrate de que este valor sea grande, o usa la longitud de tu secuencia:
+        value=2969,  # Esto es lo más seguro si 'seq_input' tiene el genoma completo
+        step=10,
+        key="longitud_total_mapa"
+    )
+    if longitud_total_mapa <= 0:
+        st.error("La longitud del genoma debe ser mayor a 0.")
+        st.stop()
+
+    st.subheader("📝 Entrada de CDS (Genes)")
+    st.markdown("Define el **Nombre**, las coordenadas de **Inicio** y **Fin**, y la **Hebra** (+1 o -1).")
+
+    cds_default_data = [
+        {"name": "NSs", "start": 69, "end": 1499, "strand": "+1"},
+        {"name": "N", "start": 2193, "end": 2969, "strand": "-1"}
+    ]
+
+    cds_column_config = {
+        "name": st.column_config.TextColumn("Nombre del CDS", required=True),
+        "start": st.column_config.NumberColumn("Inicio (bp)", min_value=1, max_value=longitud_total_mapa,
+                                               required=True),
+        "end": st.column_config.NumberColumn("Fin (bp)", min_value=1, max_value=longitud_total_mapa, required=True),
+        "strand": st.column_config.SelectboxColumn("Hebras", options=["+1", "-1"], required=True)
+    }
+
+    cds_data = st.data_editor(
+        cds_default_data,
+        column_config=cds_column_config,
+        num_rows="dynamic",
+        key="cds_editor_tab4"
+    )
+
+    st.subheader("🔬 Entrada de Amplicones (Primers)")
+    st.markdown("Define el **Nombre** del amplicon y sus coordenadas de **Inicio** y **Fin**.")
+
+    amplicon_default_data = [
+        {"name": "Par número 1", "start": 928, "end": 1003},
+        {"name": "Par número 2", "start": 2300, "end": 2450}
+    ]
+
+    amplicon_column_config = {
+        "name": st.column_config.TextColumn("Nombre del Amplicon", required=True),
+        "start": st.column_config.NumberColumn("Inicio (bp)", min_value=1, max_value=longitud_total_mapa,
+                                               required=True),
+        "end": st.column_config.NumberColumn("Fin (bp)", min_value=1, max_value=longitud_total_mapa, required=True)
+    }
+
+    amplicon_data = st.data_editor(
+        amplicon_default_data,
+        column_config=amplicon_column_config,
+        num_rows="dynamic",
+        key="amplicon_editor_tab4"
+    )
+
+    st.subheader("Resultado del Mapa Genético")
+
+    # Validaciones para el mapa
+    datos_validos_mapa = True
+    for entry in cds_data + amplicon_data:
+        if entry.get("start") >= entry.get("end"):
+            st.error(
+                f"⚠️ Error: El valor de **Inicio** ({entry['start']}) debe ser menor al de **Fin** ({entry['end']}) en **{entry.get('name', 'una fila')}**.")
+            datos_validos_mapa = False
+            break
+
+    if datos_validos_mapa and (cds_data or amplicon_data):
+        try:
+            # Generar el mapa
+            prmt.crear_mapa_genetico(longitud_total_mapa, cds_data, amplicon_data)
+            st.image(f"./imagenes/mapa_genetico.jpg")
+
+            with open(f"./imagenes/mapa_genetico.jpg", "rb") as file:
+                st.download_button(
+                    label="📥 Descargar Mapa Genético (.jpg)",
+                    data=file,
+                    file_name="mapa_genetico.jpg",
+                    mime="image/jpeg"
+                )
+        except Exception as e:
+            st.error(f"Error al generar el mapa genético: {e}")
+
+    elif not (cds_data or amplicon_data):
+        st.warning("Agrega al menos un CDS o un Amplicon para generar el mapa.")
+
+    else:
+        st.info("Por favor, corrige los errores en los datos para visualizar el mapa.")
+
+# =======================================================================
+# --- PESTAÑA 4: SIMULAR ELECTROFORESIS  ---
 # =======================================================================
 with tab4:
     st.subheader("Electroforesis generada")
