@@ -366,7 +366,7 @@ with tab2:
                             st.error(f"Error al calcular métricas personalizadas para el Par #{i + 1}: {e}")
                             st.divider()
                             continue
-                    simular_electroforesis(amplicones_simulacion, 1)
+                    simular_electroforesis(amplicones_simulacion)
                 else:
                     st.error("FALLO EL DISEÑO")
                     st.text("Explicaciones de Primer3:")
@@ -508,8 +508,7 @@ with tab4:
     st.subheader("Electroforesis generada")
 
     # Construir la ruta de la imagen
-    numero_imagen = st.session_state.get("numero_imagen", 1)
-    output_file = f"../imagen/Electroforesis{numero_imagen}.jpg"
+    output_file = f"./imagenes/Electroforesis.jpg"
 
     # Mostrar
     try:
