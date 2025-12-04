@@ -3,7 +3,6 @@ import streamlit as st
 import primer3
 from electroforesis_gel import simular_electroforesis
 import matplotlib.pyplot as plt
-from dna_features_viewer import GraphicFeature, GraphicRecord
 import io
 import primer_tools as prmt
 
@@ -126,10 +125,7 @@ with tab1:
                         st.metric("Distancia Anclaje 3' (Límite 0)", f"{dist_3_rev}",
                                   delta=f"Pasa: {pasa_anclaje_3_rev}", delta_color="off")
 
-                        st.markdown("**Primer (Input):**")
-                        st.code(rev_upper, language="text")
-
-                        st.markdown("**Alineamiento Reverse (RC vs Target):**")
+                        st.markdown("**Alineamiento Reverse:**")
                         label_rc = "RC:     "
                         label_target = "Target: "
                         padding = " " * len(label_rc)
@@ -225,9 +221,9 @@ with tab2:
                             st.error(f"Error al calcular métricas personalizadas para el Par #{i + 1}: {e}")
                             st.divider()
                             continue
+
                     simular_electroforesis(amplicones_simulacion)
-                    # Llamar a la simulación de electroforesis aquí para Pestaña 5
-                    # Guardamos los amplicones para mostrarlos en la Pestaña 5
+
                     st.session_state["amplicones_simulacion_tab2"] = amplicones_simulacion.tolist()
 
                 else:
@@ -246,7 +242,7 @@ with tab2:
 # --- PESTAÑA 3: BÚSQUEDA DE MÚLTIPLES PARES DE PRIMERS ---
 # =======================================================================
 with tab3:
-    st.header("Analizar Múltiples Pares de Primers (Batch)")
+    st.header("Analizar Múltiples Pares de Primers")
     st.info("Esta pestaña aplica el mismo filtro biológico: Distancia Total <= 5 Y Distancia Anclaje 3' == 0.")
 
     col1, col2 = st.columns(2)
@@ -365,12 +361,6 @@ with tab3:
 
                         st.divider()
 
-                # Guardamos los amplicones exitosos para la Pestaña 5
-                if amplicones_simulacion_batch:
-                    st.session_state["amplicones_simulacion_tab3"] = amplicones_simulacion_batch
-                else:
-                    st.session_state["amplicones_simulacion_tab3"] = []
-
 # =======================================================================
 # --- PESTAÑA 4: VISUALIZADOR MAPA GENÉTICO  ---
 # =======================================================================
@@ -392,7 +382,7 @@ with tab4:
         st.stop()
 
     st.subheader("📝 Entrada de CDS (Genes)")
-    st.markdown("Define el **Nombre**, las coordenadas de **Inicio** y **Fin**, y la **Hebr**a (+1 o -1).")
+    st.markdown("Define el **Nombre**, las coordenadas de **Inicio** y **Fin**, y la **Hebra** (+1 o -1).")
 
     cds_default_data = [
         {"name": "NSs", "start": 69, "end": 1499, "strand": "+1"},
