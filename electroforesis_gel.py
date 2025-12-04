@@ -6,7 +6,7 @@ matplotlib.use('TkAgg')
 
 
 
-def simular_electroforesis(amplicones_array, numero_imagen):
+def simular_electroforesis(amplicones_array):
     ''' Tipos de matrices (arrays) de numpy:
     Array unidimensional 1D (N) 'son como los ejes' en este caso las distancias
     Array bidimensional 2D (N, M) 'el espacio/superficie de la imagen' en este caso el gel
@@ -59,7 +59,7 @@ def simular_electroforesis(amplicones_array, numero_imagen):
     '''Se utiliza un peine que contiene 16 pocillos y el anchos de cada pocillo corresponde a 1.5 mm
     El ancho del gel es de 20 cm pero se respeta una margen de 10 mm en los bordes laterales'''
     cantidad_pocillos = 16
-    ancho_pocillo = 1.5
+    ancho_pocillo = 8
     marcador_pocillo = 6
     margen_gel = 10
 
@@ -82,7 +82,7 @@ def simular_electroforesis(amplicones_array, numero_imagen):
 
     '''Definir funciones para añadir una banda'''
 
-    def agregar_banda(distancia_banda, ubicacionBanda_x, grosor_banda=1):
+    def agregar_banda(distancia_banda, ubicacionBanda_x, grosor_banda=1.5):
         """Agrega una banda rectangular basada en distancias reales en mm."""
         condicion_vertical   = np.abs(malla_y - distancia_banda) < (grosor_banda/2) #cuando esta condición se cumple da true
         condicion_horizontal = np.abs(malla_x - ubicacionBanda_x ) < (ancho_pocillo/2) #cuando esta condición se cumple da true
@@ -152,6 +152,6 @@ def simular_electroforesis(amplicones_array, numero_imagen):
     ax2.set_ylabel("Migración (mm)")
 
     plt.tight_layout()
-    output_file = f'../imagen/Electroforesis{numero_imagen}.jpg'
+    output_file = f'./imagenes/Electroforesis.jpg'
     plt.savefig(output_file)
-
+    plt.close()
